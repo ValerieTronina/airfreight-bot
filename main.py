@@ -52,7 +52,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 def main():
-    from main_logic import application  # логика расчёта в отдельном файле, если используется
+    
     print("✅ Бот запущен...")
     application.run_polling()
 
