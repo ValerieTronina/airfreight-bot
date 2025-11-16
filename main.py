@@ -145,12 +145,12 @@ def main():
         fallbacks=[CommandHandler("reset", reset_command)],
     )
 
-    app.add_handler(conv_handler)
-    app.add_handler(CommandHandler("help", help_command))
-    app.add_handler(CommandHandler("reset", reset_command))
+    application.add_handler(conv_handler)
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("reset", reset_command))
 
     print("✅ Бот запущен...")
-    app.run_polling()
+    application.run_polling()
 
 if __name__ == "__main__":
     main()
