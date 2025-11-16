@@ -25,9 +25,9 @@ async def start_handler(message: types.Message):
 @dp.message_handler(lambda message: message.text == "📦 Рассчитать ставку")
 async def ask_transport_mode(message: types.Message):
     user_state[message.from_user.id] = "choose_mode"
-    await message.answer("""Выберите способ доставки:
+    await message.answer("Выберите способ доставки:
 ✈️ Авиа
-🚆 ЖД (сборный груз)""")
+🚆 ЖД (сборный груз)")
 
 @dp.message_handler(lambda message: user_state.get(message.from_user.id) == "choose_mode")
 async def ask_airport_or_city(message: types.Message):
@@ -35,8 +35,8 @@ async def ask_airport_or_city(message: types.Message):
     user_data[message.from_user.id] = {"mode": mode}
     if "авиа" in mode:
         user_state[message.from_user.id] = "airport"
-        await message.answer("""Выберите аэропорт доставки:
-Шереметьево или Пулково""")
+        await message.answer("Выберите аэропорт доставки:
+Шереметьево или Пулково")
     elif "жд" in mode:
         user_state[message.from_user.id] = "rail_city"
         await message.answer("Укажите город прибытия (Москва или Санкт-Петербург):")
@@ -73,12 +73,10 @@ async def calculate_air_rate(message: types.Message):
             if chargeable_weight <= 45:
                 rate = 7.85
             elif chargeable_weight < 100:
-                rate = 7.85
-            elif chargeable_weight < 300:
                 rate = 6.85
-            elif chargeable_weight < 500:
+            elif chargeable_weight < 300:
                 rate = 4.49
-            elif chargeable_weight < 1000:
+            elif chargeable_weight < 500:
                 rate = 3.56
             else:
                 rate = 2.33
@@ -86,12 +84,10 @@ async def calculate_air_rate(message: types.Message):
             if chargeable_weight <= 45:
                 rate = 7.45
             elif chargeable_weight < 100:
-                rate = 7.45
-            elif chargeable_weight < 300:
                 rate = 6.45
-            elif chargeable_weight < 500:
+            elif chargeable_weight < 300:
                 rate = 4.09
-            elif chargeable_weight < 1000:
+            elif chargeable_weight < 500:
                 rate = 3.16
             else:
                 rate = 1.93
@@ -104,7 +100,7 @@ async def calculate_air_rate(message: types.Message):
             f"📦 Расчётный вес: {chargeable_weight:.2f} кг"
             f"💸 Стоимость фрахта: {base_price} USD"
             f"🧾 Таможенное оформление: {dt} руб."
-                            )
+        )
     except ValueError:
         await message.answer("Введите вес в формате 12.3")
     finally:
@@ -157,12 +153,11 @@ async def calculate_rail_rate(message: types.Message):
             f"💸 Стоимость доставки: {base_price} USD"
             f"📍 Локальные сборы: {fees} USD"
             f"🧾 Таможенное оформление: {dt} руб."
-                            )
+        )
     except ValueError:
         await message.answer("Введите вес числом")
     finally:
         user_state.pop(message.from_user.id, None)
 
 if __name__ == "__main__":
-    from aiogram import executor
     executor.start_polling(dp, skip_updates=True)
