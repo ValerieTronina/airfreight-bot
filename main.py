@@ -149,19 +149,12 @@ async def calculate_air(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     result = (
         f"Авиаставка: {rate:.2f} USD/кг"
-        f"Объемный вес: {volumetric_weight:.2f} кг
-"
-        f"Облагаемый вес: {chargeable_weight:.2f} кг
-"
-        f"Итого: {total:.2f} USD
-"
-        f"Стоимость ДТ: 16 000 руб.
-
-"
-        f"📩 Заказать перевозку:
-"
-        f"WhatsApp: https://wa.me/79295770582
-"
+        f"Объемный вес: {volumetric_weight:.2f} кг"
+        f"Облагаемый вес: {chargeable_weight:.2f} кг"
+        f"Итого: {total:.2f} USD"
+        f"Стоимость ДТ: 16 000 руб."
+        f"📩 Заказать перевозку:"
+        f"WhatsApp: https://wa.me/79295770582"
         f"Email: valeriia_tronina@stforce.su"
     )
     await update.message.reply_text(result, reply_markup=start_keyboard)
