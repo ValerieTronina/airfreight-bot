@@ -99,16 +99,12 @@ async def calculate_air_rate(message: types.Message):
         base_price = round(chargeable_weight * rate, 2)
         dt = 16000
         await message.answer(
-            f"💰 Авиаставка: {rate} USD/кг
-"
-            f"🔢 Объёмный вес: {volumetric_weight:.2f} кг
-"
-            f"📦 Расчётный вес: {chargeable_weight:.2f} кг
-"
-            f"💸 Стоимость фрахта: {base_price} USD
-"
+            f"💰 Авиаставка: {rate} USD/кг"
+            f"🔢 Объёмный вес: {volumetric_weight:.2f} кг"
+            f"📦 Расчётный вес: {chargeable_weight:.2f} кг"
+            f"💸 Стоимость фрахта: {base_price} USD"
             f"🧾 Таможенное оформление: {dt} руб."
-        )
+                            )
     except ValueError:
         await message.answer("Введите вес в формате 12.3")
     finally:
