@@ -148,8 +148,7 @@ async def calculate_air(update: Update, context: ContextTypes.DEFAULT_TYPE):
         rate = rate_list[-1][1]
 
     result = (
-        f"Авиаставка: {rate:.2f} USD/кг
-"
+        f"Авиаставка: {rate:.2f} USD/кг"
         f"Объемный вес: {volumetric_weight:.2f} кг
 "
         f"Облагаемый вес: {chargeable_weight:.2f} кг
