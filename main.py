@@ -25,9 +25,9 @@ async def start_handler(message: types.Message):
 @dp.message_handler(lambda message: message.text == "📦 Рассчитать ставку")
 async def ask_transport_mode(message: types.Message):
     user_state[message.from_user.id] = "choose_mode"
-    await message.answer("Выберите способ доставки:
+    await message.answer("""Выберите способ доставки:
 ✈️ Авиа
-🚆 ЖД (сборный груз)")
+🚆 ЖД (сборный груз)""")
 
 @dp.message_handler(lambda message: user_state.get(message.from_user.id) == "choose_mode")
 async def ask_airport_or_city(message: types.Message):
@@ -35,8 +35,8 @@ async def ask_airport_or_city(message: types.Message):
     user_data[message.from_user.id] = {"mode": mode}
     if "авиа" in mode:
         user_state[message.from_user.id] = "airport"
-        await message.answer("Выберите аэропорт доставки:
-Шереметьево или Пулково")
+        await message.answer("""Выберите аэропорт доставки:
+Шереметьево или Пулково""")
     elif "жд" in mode:
         user_state[message.from_user.id] = "rail_city"
         await message.answer("Укажите город прибытия (Москва или Санкт-Петербург):")
