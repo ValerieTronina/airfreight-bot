@@ -151,18 +151,13 @@ async def calculate_rail_rate(message: types.Message):
         dt = 16000
 
         await message.answer(
-            f"🚆 ЖД ставка: {rate} USD/м³
-"
-            f"📦 Объём: {volume} м³
-"
-            f"⚖️ Вес: {weight} кг
-"
-            f"💸 Стоимость доставки: {base_price} USD
-"
-            f"📍 Локальные сборы: {fees} USD
-"
+            f"🚆 ЖД ставка: {rate} USD/м³"
+            f"📦 Объём: {volume} м³"
+            f"⚖️ Вес: {weight} кг"
+            f"💸 Стоимость доставки: {base_price} USD"
+            f"📍 Локальные сборы: {fees} USD"
             f"🧾 Таможенное оформление: {dt} руб."
-        )
+                            )
     except ValueError:
         await message.answer("Введите вес числом")
     finally:
