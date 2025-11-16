@@ -1,156 +1,244 @@
 import os
 import logging
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters, ConversationHandler
+from telegram import (
+    Update,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardRemove,
+)
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    filters,
+    ContextTypes,
+    ConversationHandler,
+)
 
-CITY, AIRPORT, MODE, WEIGHT, VOLUME = range(5)
-logging.basicConfig(level=logging.INFO)
-user_data = {}
+import os
+
+# Состояния
+(
+    MODE,
+    AIRPORT,
+    RAIL_CITY,
+    WEIGHT,
+    VOLUME,
+    SHOW_RESULT,
+) = range(6)
+
+# Ставки
+air_rates = {
+    "pulkovo": [(45, 7.85), (100, 6.85), (300, 4.49), (500, 3.56), (1000, 2.33)],
+    "svo": [(45, 7.45), (100, 6.45), (300, 4.09), (500, 3.16), (1000, 1.93)],
+    "customs": 16000,
+}
+
+rail_rates = {
+    "base": [(10, 220), (9999, 210)],
+    "local": [(400, 225), (600, 350), (999, 350), (100000, 390)],
+    "customs": 16000,
+}
+
+# Кнопки
+start_keyboard = ReplyKeyboardMarkup(
+    [[KeyboardButton("📦 Рассчитать ставку")]], resize_keyboard=True
+)
+
+mode_keyboard = ReplyKeyboardMarkup(
+    [[KeyboardButton("✈️ Авиа")], [KeyboardButton("🚆 ЖД (сборный груз)")]],
+    resize_keyboard=True,
+)
+
+airport_keyboard = ReplyKeyboardMarkup(
+    [[KeyboardButton("Пулково")], [KeyboardButton("Шереметьево")]],
+    resize_keyboard=True,
+)
+
+rail_city_keyboard = ReplyKeyboardMarkup(
+    [[KeyboardButton("Москва")], [KeyboardButton("Санкт-Петербург")]],
+    resize_keyboard=True,
+)
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    print(f"👤 Пользователь {user_id} нажал /start")
-    keyboard = [["✈️ Авиа", "🚆 ЖД (сборный груз)"]]
-    reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-    await update.message.reply_text("Привет! Выберите тип перевозки:", reply_markup=reply_markup)
+    await update.message.reply_text(
+        "Привет! Я помогу рассчитать ставку на доставку из Китая. Выберите действие:",
+        reply_markup=start_keyboard,
+    )
     return MODE
 
-async def mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    mode = update.message.text
-    user_data[update.effective_user.id] = {"mode": mode}
-    if "Авиа" in mode:
-        await update.message.reply_text("Введите аэропорт доставки (Шереметьево или Пулково):")
-        return AIRPORT
-    else:
-        await update.message.reply_text("Введите город прибытия в России (Москва или Санкт-Петербург):")
-        return CITY
 
-async def city_or_airport(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_data[update.effective_user.id]["location"] = update.message.text
-    await update.message.reply_text("Введите вес груза в кг:")
+async def ask_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Выберите способ доставки:", reply_markup=mode_keyboard)
+    return MODE
+
+
+async def handle_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    mode = update.message.text.lower()
+    context.user_data.clear()
+    context.user_data["mode"] = mode
+
+    if "авиа" in mode:
+        await update.message.reply_text("Выберите аэропорт доставки:", reply_markup=airport_keyboard)
+        return AIRPORT
+    elif "жд" in mode:
+        await update.message.reply_text("Укажите город прибытия (Москва или Санкт-Петербург):", reply_markup=rail_city_keyboard)
+        return RAIL_CITY
+    else:
+        await update.message.reply_text("Пожалуйста, выберите корректный способ доставки.")
+        return MODE
+
+
+async def handle_airport(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["airport"] = update.message.text.lower()
+    await update.message.reply_text("Введите вес груза в килограммах:", reply_markup=ReplyKeyboardRemove())
     return WEIGHT
 
-async def weight(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def handle_rail_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["rail_city"] = update.message.text.lower()
+    await update.message.reply_text("Введите вес груза в килограммах:", reply_markup=ReplyKeyboardRemove())
+    return WEIGHT
+
+
+async def handle_weight(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         weight = float(update.message.text.replace(",", "."))
+        context.user_data["weight"] = weight
+        await update.message.reply_text("Введите объем груза в м³:")
+        return VOLUME
     except ValueError:
-        await update.message.reply_text("Пожалуйста, введите числовое значение веса.")
+        await update.message.reply_text("Введите вес числом.")
         return WEIGHT
-    user_data[update.effective_user.id]["weight"] = weight
-    await update.message.reply_text("Введите объем груза в м³:")
-    return VOLUME
 
-async def volume(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def handle_volume(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         volume = float(update.message.text.replace(",", "."))
+        context.user_data["volume"] = volume
+
+        mode = context.user_data["mode"]
+
+        if "авиа" in mode:
+            return await calculate_air(update, context)
+        elif "жд" in mode:
+            return await calculate_rail(update, context)
     except ValueError:
-        await update.message.reply_text("Пожалуйста, введите числовое значение объема.")
+        await update.message.reply_text("Введите объем числом.")
         return VOLUME
 
-    user_id = update.effective_user.id
-    data = user_data.get(user_id, {})
-    mode = data.get("mode")
-    location = data.get("location")
-    weight = data.get("weight")
+
+async def calculate_air(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    airport = context.user_data["airport"]
+    weight = context.user_data["weight"]
+    volume = context.user_data["volume"]
+
     volumetric_weight = volume * 167
     chargeable_weight = max(weight, volumetric_weight)
 
-    if "Авиа" in mode:
-        airport = location.lower()
-        if "пулково" in airport:
-            if chargeable_weight <= 45:
-                rate = 7.85
-            elif chargeable_weight < 100:
-                rate = 7.85
-            elif chargeable_weight < 300:
-                rate = 6.85
-            elif chargeable_weight < 500:
-                rate = 4.49
-            elif chargeable_weight < 1000:
-                rate = 3.56
-            else:
-                rate = 2.33
-        else:  # Шереметьево
-            if chargeable_weight <= 45:
-                rate = 7.45
-            elif chargeable_weight < 100:
-                rate = 7.45
-            elif chargeable_weight < 300:
-                rate = 6.45
-            elif chargeable_weight < 500:
-                rate = 4.09
-            elif chargeable_weight < 1000:
-                rate = 3.16
-            else:
-                rate = 1.93
-        cost = chargeable_weight * rate
-        reply = (
-            f"✈️ Авиаперевозка ({location})"
-            f"📦 Вес: {weight} кг | Объем: {volume} м³"
-            f"💡 Объемный вес: {volumetric_weight:.1f} кг"
-            f"💰 Ставка: {rate} USD/кг"
-            f"💵 Итого: {cost:.2f} USD"
-            f"📄 Таможенное оформление: 16 000 руб"
-        )
+    rate_list = air_rates["pulkovo"] if "пулково" in airport else air_rates["svo"]
+
+    for limit, rate in rate_list:
+        if chargeable_weight <= limit:
+            total = chargeable_weight * rate
+            break
     else:
-        # ЖД ставки
-        if volume < 10:
-            rate = 220
-        else:
-            rate = 210
-        if weight <= 400:
-            local = 225
-        elif weight <= 600:
-            local = 350
-        elif weight < 1000:
-            local = 350
-        else:
-            local = 390
-        total = volume * rate + local
-        reply = (
-            f"🚆 ЖД перевозка ({location})"
-            f"📦 Вес: {weight} кг | Объем: {volume} м³"
-            f"💰 Ставка: {rate} USD/м³"
-            f"🔧 Локальные сборы: {local} USD"
-            f"💵 Итого: {total:.2f} USD"
-            f"📄 Таможенное оформление: 16 000 руб"
-        )
+        total = chargeable_weight * rate_list[-1][1]
+        rate = rate_list[-1][1]
 
-    await update.message.reply_text(reply)
-    return ConversationHandler.END
+    result = (
+        f"Авиаставка: {rate:.2f} USD/кг
+"
+        f"Объемный вес: {volumetric_weight:.2f} кг
+"
+        f"Облагаемый вес: {chargeable_weight:.2f} кг
+"
+        f"Итого: {total:.2f} USD
+"
+        f"Стоимость ДТ: 16 000 руб.
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Этот бот рассчитывает ставку на авиа и ЖД доставку из Китая."
-        "Нажмите /start чтобы начать заново."
+"
+        f"📩 Заказать перевозку:
+"
+        f"WhatsApp: https://wa.me/79295770582
+"
+        f"Email: valeriia_tronina@stforce.su"
     )
+    await update.message.reply_text(result, reply_markup=start_keyboard)
+    return MODE
 
-async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_data.pop(update.effective_user.id, None)
-    await update.message.reply_text("Расчёт сброшен. Введите /start чтобы начать заново.")
+
+async def calculate_rail(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    city = context.user_data["rail_city"]
+    weight = context.user_data["weight"]
+    volume = context.user_data["volume"]
+
+    # Ставка за м3
+    for limit, rate in rail_rates["base"]:
+        if volume <= limit:
+            freight = volume * rate
+            break
+
+    # Локальные сборы
+    for w_limit, fee in rail_rates["local"]:
+        if weight <= w_limit:
+            local_fees = fee
+            break
+
+    result = (
+        f"Город прибытия: {city.title()}
+"
+        f"Объем: {volume:.2f} м³
+"
+        f"Вес: {weight:.2f} кг
+"
+        f"Ставка: {freight:.2f} USD
+"
+        f"Локальные сборы: {local_fees:.2f} USD
+"
+        f"Таможенное оформление ДТ: 16 000 руб.
+"
+        f"Дополнительно: локальные затраты в Китае рассчитываются отдельно
+
+"
+        f"📩 Заказать перевозку:
+"
+        f"WhatsApp: https://wa.me/79295770582
+"
+        f"Email: valeriia_tronina@stforce.su"
+    )
+    await update.message.reply_text(result, reply_markup=start_keyboard)
+    return MODE
+
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Расчет прерван.", reply_markup=start_keyboard)
     return ConversationHandler.END
+
 
 def main():
-    application = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
+    token = os.getenv("BOT_TOKEN")
+    app = ApplicationBuilder().token(token).build()
 
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
+        entry_points=[
+            CommandHandler("start", start),
+            MessageHandler(filters.Regex("📦 Рассчитать ставку"), ask_mode),
+        ],
         states={
-            MODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, mode)],
-            AIRPORT: [MessageHandler(filters.TEXT & ~filters.COMMAND, city_or_airport)],
-            CITY: [MessageHandler(filters.TEXT & ~filters.COMMAND, city_or_airport)],
-            WEIGHT: [MessageHandler(filters.TEXT & ~filters.COMMAND, weight)],
-            VOLUME: [MessageHandler(filters.TEXT & ~filters.COMMAND, volume)],
+            MODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_mode)],
+            AIRPORT: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_airport)],
+            RAIL_CITY: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_rail_city)],
+            WEIGHT: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_weight)],
+            VOLUME: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_volume)],
         },
-        fallbacks=[CommandHandler("reset", reset_command)],
+        fallbacks=[CommandHandler("cancel", cancel)],
     )
 
-    application.add_handler(conv_handler)
-    application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(CommandHandler("reset", reset_command))
+    app.add_handler(conv_handler)
+    app.run_polling()
 
-    print("✅ Бот запущен...")
-    application.run_polling()
 
 if __name__ == "__main__":
     main()
