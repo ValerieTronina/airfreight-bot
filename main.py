@@ -148,15 +148,17 @@ async def calculate_air(update: Update, context: ContextTypes.DEFAULT_TYPE):
         rate = rate_list[-1][1]
 
     result = (
-        f"Авиаставка: {rate:.2f} USD/кг"
-        f"Объемный вес: {volumetric_weight:.2f} кг"
-        f"Облагаемый вес: {chargeable_weight:.2f} кг"
-        f"Итого: {total:.2f} USD"
-        f"Стоимость ДТ: 16 000 руб."
-        f"📩 Заказать перевозку:"
-        f"WhatsApp: https://wa.me/79295770582"
-        f"Email: valeriia_tronina@stforce.su"
-    )
+    f"Авиаставка: {rate:.2f} USD/кг\n"
+    f"Объемный вес: {volumetric_weight:.2f} кг\n"
+    f"Облагаемый вес: {chargeable_weight:.2f} кг\n"
+    f"Итого: {total:.2f} USD\n"
+    f"Стоимость ДТ: 16 000 руб.\n"
+    f"📩 Заказать перевозку:\n"
+    f"WhatsApp: https://wa.me/79295770582\n"
+    f"Email: valeriia_tronina@stforce.su"
+)
+context.user_data.clear()
+
     await update.message.reply_text(result, reply_markup=start_keyboard)
     return MODE
 
@@ -178,18 +180,20 @@ async def calculate_rail(update: Update, context: ContextTypes.DEFAULT_TYPE):
             local_fees = fee
             break
 
-    result = (
-        f"Город прибытия: {city.title()}"
-        f"Объем: {volume:.2f} м³"
-        f"Вес: {weight:.2f} кг"
-        f"Ставка: {freight:.2f} USD"
-        f"Локальные сборы: {local_fees:.2f} USD"
-        f"Таможенное оформление ДТ: 16 000 руб."
-        f"Дополнительно: локальные затраты в Китае рассчитываются отдельно"
-        f"📩 Заказать перевозку:"
-        f"WhatsApp: https://wa.me/79295770582"
-        f"Email: valeriia_tronina@stforce.su"
-    )
+result = (
+    f"Город прибытия: {city.title()}\n"
+    f"Объем: {volume:.2f} м³\n"
+    f"Вес: {weight:.2f} кг\n"
+    f"Ставка: {freight:.2f} USD\n"
+    f"Локальные сборы: {local_fees:.2f} USD\n"
+    f"Таможенное оформление ДТ: 16 000 руб.\n"
+    f"Дополнительно: локальные затраты в Китае рассчитываются отдельно\n"
+    f"📩 Заказать перевозку:\n"
+    f"WhatsApp: https://wa.me/79295770582\n"
+    f"Email: valeriia_tronina@stforce.su"
+)
+context.user_data.clear()
+
     await update.message.reply_text(result, reply_markup=start_keyboard)
     return MODE
 
