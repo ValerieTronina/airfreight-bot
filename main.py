@@ -561,7 +561,7 @@ async def quick_rail_from_last(message: types.Message):
 @dp.message_handler(commands=["info"])
 async def info_cmd(message: types.Message):
     await message.answer(
-        "Цены, по которым реально можно отправить груз!\n"
+        "Цены, по которым реально можно отправить груз, включают в себя:\n"
         "• фрахт\n"
         "• локальные сборы и оформление документов\n"
         "• оформление ДТ"
@@ -572,7 +572,7 @@ async def info_cmd(message: types.Message):
 @dp.message_handler(commands=["contacts"])
 async def contacts_cmd(message: types.Message):
     await message.answer(
-        "Связаться со мной:\n"
+        "Связаться с нами:\n"
         "WhatsApp: https://wa.me/79295770582\n"
         "Email: valeriia_tronina@stforce.su"
     )
