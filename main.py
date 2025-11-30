@@ -557,6 +557,25 @@ async def quick_rail_from_last(message: types.Message):
     kb = nav_inline_kb(show_other_mode="air")
     await message.answer(text, reply_markup=kb)
 
+# ---------- КОМАНДА /info ----------
+@dp.message_handler(commands=["info"])
+async def info_cmd(message: types.Message):
+    await message.answer(
+        "Цены, по которым реально можно отправить груз!\n"
+        "• фрахт\n"
+        "• локальные сборы и оформление документов\n"
+        "• оформление ДТ"
+    )
+
+
+# ---------- КОМАНДА /contacts ----------
+@dp.message_handler(commands=["contacts"])
+async def contacts_cmd(message: types.Message):
+    await message.answer(
+        "Связаться со мной:\n"
+        "WhatsApp: https://wa.me/79295770582\n"
+        "Email: valeriia_tronina@stforce.su"
+    )
 
 # ---------- ФОЛБЭК ----------
 
